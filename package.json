@@ -9,7 +9,7 @@
     "lint": "eslint",
     "import-master": "tsx scripts/import-master.ts",
     "seed-mitra": "tsx scripts/seed-mitra.ts",
-    "tunnel": "cloudflared tunnel --url http://localhost:3000"
+    "tunnel": "cloudflared tunnel --url http://localhost:3000 --http-host-header localhost:3000 --protocol http2"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
