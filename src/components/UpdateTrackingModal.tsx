@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Trash2,
   Paperclip,
+  Check,
 } from "lucide-react";
 import { format } from "date-fns";
 import { DashboardSummary } from "@/lib/sheets/types";
@@ -73,6 +74,14 @@ export function UpdateTrackingModal({
   if (!isOpen || !transaction) return null;
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
+
+  // Visual Stepper Milestone Calculations
+  const isStep1Done = Boolean(transaction.tanggalTerimaBarang);
+  const isStep2Done = Boolean(tanggalProsesBarcode);
+  const isStep2Active = !isStep2Done && Boolean(tanggalTerimaBarcode);
+  const isStep3Done = Boolean(tanggalKirimBarang);
+  const isStep3Active = !isStep3Done && (isStep2Done || prosesStatus === "Siap Kirim" || prosesStatus === "Selesai");
+  const isStep4Done = Boolean(evidenceBaUrl);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -222,6 +231,136 @@ export function UpdateTrackingModal({
               <div>
                 <span className="text-slate-400 block text-[10px]">PIC Pemohon:</span>
                 <span className="font-medium text-slate-800">{transaction.pic || "-"}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* INTERACTIVE VISUAL STEPPER */}
+          <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200">
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center justify-between">
+              <span>Alur Progres Distribusi Fisik</span>
+              <span className="text-slate-500 font-semibold text-[11px]">
+                {isStep4Done
+                  ? "Selesai & Berita Acara Lengkap"
+                  : isStep3Done
+                  ? "Barang Terdistribusi"
+                  : isStep3Active
+                  ? "Siap Dikirim"
+                  : isStep2Active
+                  ? "Sedang Ditempel Barcode"
+                  : "Menunggu Penempelan Barcode"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-4 relative items-start gap-2">
+              {/* Connecting line behind icons */}
+              <div className="absolute top-4 left-6 right-6 h-0.5 bg-slate-200 -z-0">
+                <div
+                  className="h-full bg-emerald-500 transition-all duration-300"
+                  style={{
+                    width: isStep4Done
+                      ? "100%"
+                      : isStep3Done
+                      ? "75%"
+                      : isStep2Done
+                      ? "45%"
+                      : isStep2Active
+                      ? "25%"
+                      : "0%",
+                  }}
+                />
+              </div>
+
+              {/* Stage 1: Penerimaan */}
+              <div className="flex flex-col items-center text-center relative z-10">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all shadow-2xs ${
+                    isStep1Done
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-200 text-slate-500"
+                  }`}
+                >
+                  <Check className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-bold text-slate-900 mt-2">1. Terima</span>
+                <span className="text-[10px] text-slate-500 truncate max-w-[80px]">
+                  {transaction.tanggalTerimaBarang || "Selesai"}
+                </span>
+              </div>
+
+              {/* Stage 2: Labeling */}
+              <div className="flex flex-col items-center text-center relative z-10">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all shadow-2xs ${
+                    isStep2Done
+                      ? "bg-emerald-600 text-white"
+                      : isStep2Active
+                      ? "bg-amber-500 text-white ring-4 ring-amber-100"
+                      : "bg-slate-200 text-slate-500"
+                  }`}
+                >
+                  {isStep2Done ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <QrCode className="w-4 h-4" />
+                  )}
+                </div>
+                <span className="text-xs font-bold text-slate-900 mt-2">2. Labeling</span>
+                <span className="text-[10px] text-slate-500 truncate max-w-[80px]">
+                  {tanggalProsesBarcode
+                    ? "Selesai"
+                    : tanggalTerimaBarcode
+                    ? "Proses"
+                    : "Menunggu"}
+                </span>
+              </div>
+
+              {/* Stage 3: Pengiriman */}
+              <div className="flex flex-col items-center text-center relative z-10">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all shadow-2xs ${
+                    isStep3Done
+                      ? "bg-emerald-600 text-white"
+                      : isStep3Active
+                      ? "bg-blue-600 text-white ring-4 ring-blue-100"
+                      : "bg-slate-200 text-slate-500"
+                  }`}
+                >
+                  {isStep3Done ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Truck className="w-4 h-4" />
+                  )}
+                </div>
+                <span className="text-xs font-bold text-slate-900 mt-2">3. Kirim</span>
+                <span className="text-[10px] text-slate-500 truncate max-w-[80px]">
+                  {tanggalKirimBarang
+                    ? "Terkirim"
+                    : isStep3Active
+                    ? "Siap Kirim"
+                    : "Pending"}
+                </span>
+              </div>
+
+              {/* Stage 4: Evidence BA */}
+              <div className="flex flex-col items-center text-center relative z-10">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all shadow-2xs ${
+                    isStep4Done
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-200 text-slate-500"
+                  }`}
+                >
+                  {isStep4Done ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <FileText className="w-4 h-4" />
+                  )}
+                </div>
+                <span className="text-xs font-bold text-slate-900 mt-2">4. Berita Acara</span>
+                <span className="text-[10px] text-slate-500 truncate max-w-[80px]">
+                  {isStep4Done ? "Terlampir" : "Belum Ada"}
+                </span>
               </div>
             </div>
           </div>

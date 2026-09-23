@@ -19,7 +19,19 @@ import {
   ArrowUp,
   ArrowDown,
   FileSpreadsheet,
+  SlidersHorizontal,
+  X,
+  ExternalLink,
+  FileText,
+  CheckCircle2,
+  Clock,
+  Sparkles,
+  Truck,
+  Calendar,
+  Building2,
 } from "lucide-react";
+import Link from "next/link";
+
 import { ExportExcelModal } from "./ExportExcelModal";
 
 // Code-split heavy Recharts components (reduces initial bundle size and speeds up FCP)
@@ -145,6 +157,17 @@ export function DashboardView() {
 
   const [lastUpdatedTime, setLastUpdatedTime] = useState<string>("Hari ini, 10:45 WIB");
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
+  const [isSecondaryFiltersOpen, setIsSecondaryFiltersOpen] = useState<boolean>(false);
+  const [selectedRowDetail, setSelectedRowDetail] = useState<DashboardSummary["transactions"][number] | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedRowDetail(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
 
   const fetchDashboardData = async (refresh = false) => {
     try {
@@ -368,6 +391,53 @@ export function DashboardView() {
     setSortField(null);
     setCurrentPage(1);
   };
+
+  const activeFilterChips = useMemo(() => {
+    const chips: { id: string; label: string; value: string; onRemove: () => void }[] = [];
+    if (selectedYear !== "ALL") {
+      chips.push({ id: "year", label: "Tahun", value: selectedYear, onRemove: () => handleYearChange("ALL") });
+    }
+    if (selectedMonth !== "ALL") {
+      chips.push({ id: "month", label: "Bulan", value: selectedMonth, onRemove: () => setSelectedMonth("ALL") });
+    }
+    if (selectedAnggaran !== "ALL") {
+      chips.push({ id: "anggaran", label: "Anggaran", value: selectedAnggaran, onRemove: () => setSelectedAnggaran("ALL") });
+    }
+    if (selectedMitra !== "ALL") {
+      chips.push({ id: "mitra", label: "Mitra", value: selectedMitra, onRemove: () => setSelectedMitra("ALL") });
+    }
+    if (selectedPIC !== "ALL") {
+      chips.push({ id: "pic", label: "PIC", value: selectedPIC, onRemove: () => setSelectedPIC("ALL") });
+    }
+    if (selectedCostCenter !== "ALL") {
+      chips.push({ id: "cc", label: "Cost Center", value: selectedCostCenter, onRemove: () => setSelectedCostCenter("ALL") });
+    }
+    if (selectedIO !== "ALL") {
+      chips.push({ id: "io", label: "IO", value: selectedIO, onRemove: () => setSelectedIO("ALL") });
+    }
+    return chips;
+  }, [selectedYear, selectedMonth, selectedAnggaran, selectedMitra, selectedPIC, selectedCostCenter, selectedIO]);
+
+  const applyPreset = (preset: "ALL" | "THIS_YEAR" | "THIS_MONTH" | "CAPEX" | "OPEX") => {
+    setCurrentPage(1);
+    const currentYear = String(new Date().getFullYear());
+    const currentMonthName = INDONESIAN_MONTHS[new Date().getMonth()];
+
+    if (preset === "ALL") {
+      handleResetFilters();
+    } else if (preset === "THIS_YEAR") {
+      setSelectedYear(currentYear);
+      setSelectedMonth("ALL");
+    } else if (preset === "THIS_MONTH") {
+      setSelectedYear(currentYear);
+      setSelectedMonth(currentMonthName);
+    } else if (preset === "CAPEX") {
+      setSelectedAnggaran("Capex");
+    } else if (preset === "OPEX") {
+      setSelectedAnggaran("Opex");
+    }
+  };
+
 
   // Filtered KPIs
   const filteredKPIs = useMemo(() => {
@@ -693,46 +763,127 @@ export function DashboardView() {
       </section>
       {/* END: PageHeader */}
 
-      {/* BEGIN: FilterSection */}
-      <section className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
-          <div className="flex items-center space-x-2">
-            <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg">
-              <Filter className="w-4 h-4" />
+      {/* BEGIN: SmartFilterSection */}
+      <section className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+        {/* Header & Preset Row */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center space-x-2 mr-2">
+              <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg">
+                <Filter className="w-4 h-4" />
+              </div>
+              <h2 className="text-xs font-bold tracking-wider uppercase text-slate-700 font-heading">
+                Smart Filter
+              </h2>
+              {activeFilterCount > 0 && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                  {activeFilterCount} Kriteria
+                </span>
+              )}
             </div>
-            <h2 className="text-xs font-bold tracking-wider uppercase text-slate-700 font-heading">
-              Filter Data Transaksi
-            </h2>
-            {activeFilterCount > 0 && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
-                {activeFilterCount} Aktif
+
+            {/* Quick Presets */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider hidden sm:inline mr-1">
+                Preset:
               </span>
+              <button
+                type="button"
+                onClick={() => applyPreset("ALL")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  selectedYear === "ALL" && selectedMonth === "ALL" && selectedAnggaran === "ALL"
+                    ? "bg-rose-600 text-white shadow-2xs font-bold"
+                    : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                }`}
+              >
+                Semua Data
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset("THIS_YEAR")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  selectedYear === "2026" && selectedMonth === "ALL"
+                    ? "bg-rose-600 text-white shadow-2xs font-bold"
+                    : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                }`}
+              >
+                Tahun 2026
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset("THIS_MONTH")}
+                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+              >
+                Bulan Ini
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset("CAPEX")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  selectedAnggaran === "Capex"
+                    ? "bg-rose-100 text-rose-800 border border-rose-200 font-bold"
+                    : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                }`}
+              >
+                Capex
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset("OPEX")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  selectedAnggaran === "Opex"
+                    ? "bg-slate-800 text-white shadow-2xs font-bold"
+                    : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                }`}
+              >
+                Opex
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start lg:self-auto">
+            <button
+              type="button"
+              onClick={() => setIsSecondaryFiltersOpen(!isSecondaryFiltersOpen)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition shadow-2xs ${
+                isSecondaryFiltersOpen || (selectedMitra !== "ALL" || selectedPIC !== "ALL" || selectedCostCenter !== "ALL" || selectedIO !== "ALL")
+                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                  : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200"
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Filter Lanjutan</span>
+              {(selectedMitra !== "ALL" || selectedPIC !== "ALL" || selectedCostCenter !== "ALL" || selectedIO !== "ALL") && (
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+              )}
+            </button>
+
+            {(activeFilterCount > 0 || searchQuery.trim() !== "") && (
+              <button
+                onClick={handleResetFilters}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition"
+                type="button"
+                title="Reset semua filter"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
+              </button>
             )}
           </div>
-          {(activeFilterCount > 0 || searchQuery.trim() !== "") && (
-            <button
-              onClick={handleResetFilters}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 bg-rose-50/70 border border-rose-200/70 hover:bg-rose-100 hover:text-rose-700 transition shadow-2xs"
-              type="button"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Semua Filter</span>
-            </button>
-          )}
         </div>
 
-        {/* Filter Controls Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        {/* Primary Filter Row (Clean 3-column layout) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Tahun Filter */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1" htmlFor="filter-tahun">
-              Tahun
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1" htmlFor="filter-tahun">
+              Tahun Transaksi
             </label>
             <select
               id="filter-tahun"
               value={selectedYear}
               onChange={(e) => handleYearChange(e.target.value)}
-              className="w-full text-xs font-medium text-slate-700 bg-slate-50/70 border border-slate-200 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 py-2 pl-3 pr-8 transition"
+              className="w-full text-xs font-semibold text-slate-800 bg-slate-50/80 border border-slate-200 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 py-2 px-3 transition"
             >
               <option value="ALL">Semua Tahun</option>
               {availableYears.map((y) => (
@@ -745,8 +896,8 @@ export function DashboardView() {
 
           {/* Bulan Filter */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1" htmlFor="filter-bulan">
-              Bulan
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1" htmlFor="filter-bulan">
+              Bulan Sheet
             </label>
             <select
               id="filter-bulan"
@@ -755,7 +906,7 @@ export function DashboardView() {
                 setSelectedMonth(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full text-xs font-medium text-slate-700 bg-slate-50/70 border border-slate-200 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 py-2 pl-3 pr-8 transition"
+              className="w-full text-xs font-semibold text-slate-800 bg-slate-50/80 border border-slate-200 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 py-2 px-3 transition"
             >
               <option value="ALL">Semua Bulan</option>
               {availableMonths.map((m) => (
@@ -766,56 +917,10 @@ export function DashboardView() {
             </select>
           </div>
 
-          {/* Nama Mitra Filter */}
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1" htmlFor="filter-mitra">
-              Nama Mitra
-            </label>
-            <select
-              id="filter-mitra"
-              value={selectedMitra}
-              onChange={(e) => {
-                setSelectedMitra(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full text-xs font-medium text-slate-700 bg-slate-50/70 border border-slate-200 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 py-2 pl-3 pr-8 transition truncate"
-            >
-              <option value="ALL">Semua Mitra</option>
-              {filterOptions.mitras.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* PIC Filter */}
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1" htmlFor="filter-pic">
-              PIC
-            </label>
-            <select
-              id="filter-pic"
-              value={selectedPIC}
-              onChange={(e) => {
-                setSelectedPIC(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full text-xs font-medium text-slate-700 bg-slate-50/70 border border-slate-200 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 py-2 pl-3 pr-8 transition truncate"
-            >
-              <option value="ALL">Semua PIC</option>
-              {filterOptions.pics.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Anggaran Filter */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1" htmlFor="filter-anggaran">
-              Anggaran
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1" htmlFor="filter-anggaran">
+              Pos Anggaran
             </label>
             <select
               id="filter-anggaran"
@@ -824,63 +929,147 @@ export function DashboardView() {
                 setSelectedAnggaran(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full text-xs font-medium text-slate-700 bg-slate-50/70 border border-slate-200 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 py-2 pl-3 pr-8 transition"
+              className="w-full text-xs font-semibold text-slate-800 bg-slate-50/80 border border-slate-200 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 py-2 px-3 transition"
             >
-              <option value="ALL">Semua Anggaran</option>
-              <option value="Capex">Capex</option>
-              <option value="Opex">Opex</option>
+              <option value="ALL">Semua Anggaran (Capex &amp; Opex)</option>
+              <option value="Capex">Capex Saja</option>
+              <option value="Opex">Opex Saja</option>
               <option value="Capex/Opex">Capex/Opex</option>
             </select>
           </div>
-
-          {/* Cost Center Filter */}
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1" htmlFor="filter-cc">
-              Cost Center
-            </label>
-            <select
-              id="filter-cc"
-              value={selectedCostCenter}
-              onChange={(e) => {
-                setSelectedCostCenter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full text-xs font-medium text-slate-700 bg-slate-50/70 border border-slate-200 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 py-2 pl-3 pr-8 transition truncate"
-            >
-              <option value="ALL">Semua CC</option>
-              {filterOptions.ccs.map((cc) => (
-                <option key={cc} value={cc}>
-                  {cc}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Internal Order Filter */}
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1" htmlFor="filter-io">
-              Internal Order
-            </label>
-            <select
-              id="filter-io"
-              value={selectedIO}
-              onChange={(e) => {
-                setSelectedIO(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full text-xs font-medium text-slate-700 bg-slate-50/70 border border-slate-200 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 py-2 pl-3 pr-8 transition truncate"
-            >
-              <option value="ALL">Semua IO</option>
-              {filterOptions.ios.map((io) => (
-                <option key={io} value={io}>
-                  {io}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
+
+        {/* Collapsible Secondary Filters (Mitra, PIC, Cost Center, IO) */}
+        {isSecondaryFiltersOpen && (
+          <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Nama Mitra */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1" htmlFor="filter-mitra">
+                Mitra / Vendor
+              </label>
+              <select
+                id="filter-mitra"
+                value={selectedMitra}
+                onChange={(e) => {
+                  setSelectedMitra(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full text-xs font-medium text-slate-700 bg-slate-50/70 border border-slate-200 rounded-xl py-2 px-3 transition truncate"
+              >
+                <option value="ALL">Semua Mitra</option>
+                {filterOptions.mitras.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* PIC */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1" htmlFor="filter-pic">
+                PIC Pengadaan
+              </label>
+              <select
+                id="filter-pic"
+                value={selectedPIC}
+                onChange={(e) => {
+                  setSelectedPIC(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full text-xs font-medium text-slate-700 bg-slate-50/70 border border-slate-200 rounded-xl py-2 px-3 transition truncate"
+              >
+                <option value="ALL">Semua PIC</option>
+                {filterOptions.pics.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Cost Center */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1" htmlFor="filter-cc">
+                Cost Center
+              </label>
+              <select
+                id="filter-cc"
+                value={selectedCostCenter}
+                onChange={(e) => {
+                  setSelectedCostCenter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full text-xs font-medium text-slate-700 bg-slate-50/70 border border-slate-200 rounded-xl py-2 px-3 transition truncate"
+              >
+                <option value="ALL">Semua Cost Center</option>
+                {filterOptions.ccs.map((cc) => (
+                  <option key={cc} value={cc}>
+                    {cc}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Internal Order */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1" htmlFor="filter-io">
+                Internal Order (IO)
+              </label>
+              <select
+                id="filter-io"
+                value={selectedIO}
+                onChange={(e) => {
+                  setSelectedIO(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full text-xs font-medium text-slate-700 bg-slate-50/70 border border-slate-200 rounded-xl py-2 px-3 transition truncate"
+              >
+                <option value="ALL">Semua IO</option>
+                {filterOptions.ios.map((io) => (
+                  <option key={io} value={io}>
+                    {io}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* ACTIVE FILTER CHIPS ROW */}
+        {activeFilterChips.length > 0 && (
+          <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Filter Aktif:
+            </span>
+            {activeFilterChips.map((chip) => (
+              <span
+                key={chip.id}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/80 shadow-2xs"
+              >
+                <span>{chip.label}: <strong className="text-slate-900">{chip.value}</strong></span>
+                <button
+                  type="button"
+                  onClick={chip.onRemove}
+                  className="w-4 h-4 rounded-full hover:bg-rose-200/60 inline-flex items-center justify-center text-rose-700 hover:text-rose-900 transition-colors"
+                  title={`Hapus filter ${chip.label}`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="text-xs font-semibold text-rose-600 hover:text-rose-800 underline ml-1"
+            >
+              Hapus Semua ({activeFilterChips.length})
+            </button>
+          </div>
+        )}
       </section>
-      {/* END: FilterSection */}
+      {/* END: SmartFilterSection */}
+
 
       {/* BEGIN: KPICardsGrid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-purpose="metrics-summary">
@@ -1291,7 +1480,12 @@ export function DashboardView() {
                 </tr>
               ) : (
                 paginatedTransactions.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors">
+                  <tr
+                    key={tx.id}
+                    onClick={() => setSelectedRowDetail(tx)}
+                    title="Klik baris untuk melihat detail transaksi lengkap"
+                    className="hover:bg-rose-50/40 cursor-pointer transition-colors group"
+                  >
                     <td className="py-3 px-3 text-center font-medium text-slate-400 tabular-nums">{tx.no}</td>
                     <td className="py-3 px-3 whitespace-nowrap tabular-nums text-slate-600">{tx.tanggalTerimaBarang}</td>
                     <td className="py-3 px-3 whitespace-nowrap text-slate-400 font-mono text-[11px]">
@@ -1431,7 +1625,233 @@ export function DashboardView() {
           </div>
         </div>
       </section>
-      {/* END: DataTableSection */}
+      {/* BEGIN: Slide-Over Detail Drawer */}
+      {selectedRowDetail && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+            onClick={() => setSelectedRowDetail(null)}
+            aria-hidden="true"
+          />
+
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div className="w-screen max-w-lg bg-white shadow-2xl flex flex-col border-l border-slate-200 animate-in slide-in-from-right duration-200">
+              {/* Drawer Header */}
+              <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-slate-900 text-base flex items-center gap-2">
+                      <span>Detail Registrasi</span>
+                      <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-200/70 text-slate-700">
+                        #{selectedRowDetail.no}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-500 font-mono mt-0.5">
+                      DO: {selectedRowDetail.nomorDo || "—"} &bull; {selectedRowDetail.sheetName}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRowDetail(null)}
+                  className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                  title="Tutup (Esc)"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Drawer Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Main Product Hero */}
+                <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-rose-50/30 border border-slate-100">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded">
+                        {selectedRowDetail.anggaran}
+                      </span>
+                      <h4 className="font-heading font-bold text-slate-900 text-lg mt-2 leading-snug">
+                        {selectedRowDetail.namaBarang}
+                      </h4>
+                      <p className="text-xs text-slate-500 font-medium mt-1 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Mitra: <strong>{selectedRowDetail.namaMitra}</strong></span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-baseline justify-between">
+                    <span className="text-xs text-slate-500 font-medium">Grand Total Nilai</span>
+                    <span className="font-heading font-extrabold text-xl text-rose-700 tabular-nums">
+                      Rp {new Intl.NumberFormat("id-ID").format(selectedRowDetail.totalHarga)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bukti Berita Acara (BA) Status Card */}
+                <div className="p-4 rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <FileSpreadsheet className="w-4 h-4 text-rose-600" />
+                      <span>Dokumen Berita Acara (BA)</span>
+                    </span>
+                    {selectedRowDetail.evidenceBaUrl ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>Terlampir</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                        <Clock className="w-3 h-3" />
+                        <span>Belum Ada</span>
+                      </span>
+                    )}
+                  </div>
+                  {selectedRowDetail.evidenceBaUrl ? (
+                    <div className="mt-2 flex items-center justify-between gap-3 p-2.5 rounded-lg bg-emerald-50/50 border border-emerald-100 text-xs">
+                      <div className="truncate flex-1">
+                        <p className="font-medium text-emerald-900 truncate">
+                          {selectedRowDetail.evidenceBaFileName || "Dokumen_BA.pdf"}
+                        </p>
+                        <p className="text-[10px] text-emerald-600 mt-0.5">Bukti fisik pengeluaran resmi</p>
+                      </div>
+                      <a
+                        href={selectedRowDetail.evidenceBaUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition shadow-2xs whitespace-nowrap"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Buka PDF</span>
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 mt-1">
+                      File BA belum diunggah atau transaksi belum mencapai tahap pengiriman akhir.
+                    </p>
+                  )}
+                </div>
+
+                {/* Financial & Quantity Breakdown */}
+                <div className="space-y-3">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400">Rincian Finansial & Volume</h5>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                      <span className="text-slate-400 text-[11px] block">Harga Satuan</span>
+                      <span className="font-semibold text-slate-800 text-sm mt-0.5 block tabular-nums">
+                        Rp {new Intl.NumberFormat("id-ID").format(selectedRowDetail.hargaSatuan)}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                      <span className="text-slate-400 text-[11px] block">Jumlah Volume</span>
+                      <span className="font-semibold text-slate-800 text-sm mt-0.5 block tabular-nums">
+                        {selectedRowDetail.jumlah} {selectedRowDetail.satuan}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Project & Accounting Attribution */}
+                <div className="space-y-3">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400">Atribusi Proyek & Anggaran</h5>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between py-1.5 border-b border-slate-100">
+                      <span className="text-slate-500">Nama Project</span>
+                      <span className="font-medium text-slate-900 text-right">{selectedRowDetail.namaProject || "—"}</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 border-b border-slate-100">
+                      <span className="text-slate-500">PIC Request</span>
+                      <span className="font-medium text-slate-900 text-right">{selectedRowDetail.pic || "—"}</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 border-b border-slate-100">
+                      <span className="text-slate-500">Cost Center (CC)</span>
+                      <span className="font-medium text-slate-900 text-right font-mono">
+                        {selectedRowDetail.costCenter ? `${selectedRowDetail.costCenter} ${selectedRowDetail.costCenterName ? `(${selectedRowDetail.costCenterName})` : ""}` : "—"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1.5 border-b border-slate-100">
+                      <span className="text-slate-500">Internal Order (IO)</span>
+                      <span className="font-medium text-slate-900 text-right font-mono">
+                        {selectedRowDetail.internalOrder ? `${selectedRowDetail.internalOrder} ${selectedRowDetail.internalOrderName ? `(${selectedRowDetail.internalOrderName})` : ""}` : "—"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tracking Milestones */}
+                <div className="space-y-3">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Status Logistik & Distribusi</span>
+                  </h5>
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-2.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Status Proses:</span>
+                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-white border border-slate-200 text-slate-700">
+                        {selectedRowDetail.prosesStatus || "Pending"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Tgl Terima Barang:</span>
+                      <span className="font-medium text-slate-800">{selectedRowDetail.tanggalTerimaBarang || "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Tgl Terima Barcode:</span>
+                      <span className="font-medium text-slate-800">{selectedRowDetail.tanggalTerimaBarcode || "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Tgl Proses Barcode:</span>
+                      <span className="font-medium text-slate-800">{selectedRowDetail.tanggalProsesBarcode || "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Tgl Kirim Barang:</span>
+                      <span className="font-medium text-slate-800">{selectedRowDetail.tanggalKirimBarang || "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Tujuan Pengiriman:</span>
+                      <span className="font-medium text-slate-800 text-right">{selectedRowDetail.tujuanPengiriman || "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">User Pemakai:</span>
+                      <span className="font-medium text-slate-800 text-right">{selectedRowDetail.userPemakai || "—"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Keterangan */}
+                {selectedRowDetail.keterangan && (
+                  <div className="p-3 rounded-lg bg-amber-50/70 border border-amber-200/70 text-xs text-amber-900">
+                    <span className="font-bold block mb-1">Catatan / Keterangan:</span>
+                    <p className="leading-relaxed">{selectedRowDetail.keterangan}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
+                <Link
+                  href={`/tracking?search=${encodeURIComponent(selectedRowDetail.nomorDo || selectedRowDetail.namaBarang)}`}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition shadow-2xs"
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>Buka di Halaman Tracking</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRowDetail(null)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition shadow-2xs"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* END: Slide-Over Detail Drawer */}
 
       {/* BEGIN: ExportExcelModal */}
       {data && (
