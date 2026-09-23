@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "default-src 'none'; style-src 'unsafe-inline'; sandbox allow-downloads",
+            value: "default-src 'self'; object-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'none'",
           },
           {
             key: "X-Content-Type-Options",
