@@ -648,17 +648,17 @@ export function AssetRegisterForm() {
                 <p className="text-xs text-rose-600 font-medium">{errors.items.root.message}</p>
               )}
 
-              {/* TABLE INLINE DATA GRID (Desktop & Tablet) */}
-              <div className="hidden sm:block overflow-x-auto rounded-xl border border-slate-200/80">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-slate-50/80 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200/80">
+              {/* TABLE INLINE DATA GRID (Responsive Unified Grid) */}
+              <div className="overflow-x-auto rounded-xl border border-slate-200/80 shadow-2xs">
+                <table className="w-full text-left text-xs border-collapse min-w-[620px]">
+                  <thead className="bg-slate-50/90 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200/80">
                     <tr>
                       <th className="py-2.5 px-3 w-10 text-center">#</th>
-                      <th className="py-2.5 px-3 min-w-[200px]">Nama Barang &amp; Spesifikasi *</th>
-                      <th className="py-2.5 px-2 w-20 text-center">Qty *</th>
-                      <th className="py-2.5 px-2 w-28">Satuan *</th>
-                      <th className="py-2.5 px-3 w-40">Harga Satuan (Rp) *</th>
-                      <th className="py-2.5 px-3 w-40 text-right">Subtotal</th>
+                      <th className="py-2.5 px-3 min-w-[220px]">Nama Barang &amp; Spesifikasi <span className="text-rose-500">*</span></th>
+                      <th className="py-2.5 px-2 w-20 text-center">Qty <span className="text-rose-500">*</span></th>
+                      <th className="py-2.5 px-2 w-28">Satuan <span className="text-rose-500">*</span></th>
+                      <th className="py-2.5 px-3 w-40">Harga Satuan (Rp) <span className="text-rose-500">*</span></th>
+                      <th className="py-2.5 px-3 w-36 text-right">Subtotal</th>
                       <th className="py-2.5 px-2 w-12 text-center">Aksi</th>
                     </tr>
                   </thead>
@@ -680,7 +680,7 @@ export function AssetRegisterForm() {
                               type="text"
                               placeholder="Nama & spesifikasi barang..."
                               {...register(`items.${index}.namaBarang` as const)}
-                              className={`w-full text-xs font-semibold text-slate-800 bg-white border rounded-lg py-1.5 px-2.5 shadow-2xs transition focus:outline-hidden focus:ring-1 ${
+                              className={`w-full text-xs font-semibold text-slate-800 bg-white border rounded-lg py-2 px-2.5 shadow-2xs transition focus:outline-hidden focus:ring-1 ${
                                 errors.items?.[index]?.namaBarang
                                   ? "border-rose-300 focus:border-rose-500 focus:ring-rose-200 bg-rose-50/20"
                                   : "border-slate-200 focus:border-rose-500 focus:ring-rose-500"
@@ -699,7 +699,7 @@ export function AssetRegisterForm() {
                               type="number"
                               min="1"
                               {...register(`items.${index}.jumlah` as const, { valueAsNumber: true })}
-                              className="w-full text-center text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 px-2 shadow-2xs transition focus:outline-hidden focus:ring-1 focus:border-rose-500 focus:ring-rose-500"
+                              className="w-full text-center text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-lg py-2 px-2 shadow-2xs transition focus:outline-hidden focus:ring-1 focus:border-rose-500 focus:ring-rose-500"
                             />
                           </td>
 
@@ -710,7 +710,7 @@ export function AssetRegisterForm() {
                                 type="text"
                                 placeholder="Unit"
                                 {...register(`items.${index}.satuan` as const)}
-                                className="w-full text-xs font-medium text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 px-2 shadow-2xs transition focus:outline-hidden focus:ring-1 focus:border-rose-500 focus:ring-rose-500"
+                                className="w-full text-xs font-medium text-slate-800 bg-white border border-slate-200 rounded-lg py-2 px-2 shadow-2xs transition focus:outline-hidden focus:ring-1 focus:border-rose-500 focus:ring-rose-500"
                               />
                               <div className="flex flex-wrap gap-1">
                                 {SATUAN_SUGGESTIONS.slice(0, 3).map((s) => (
@@ -718,7 +718,7 @@ export function AssetRegisterForm() {
                                     key={s}
                                     type="button"
                                     onClick={() => setValue(`items.${index}.satuan` as const, s, { shouldValidate: true })}
-                                    className="text-[9px] px-1 py-0.2 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold"
+                                    className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold cursor-pointer"
                                   >
                                     {s}
                                   </button>
@@ -744,7 +744,7 @@ export function AssetRegisterForm() {
                           </td>
 
                           {/* Subtotal */}
-                          <td className="py-2 px-3 text-right font-bold text-slate-900 tabular-nums">
+                          <td className="py-2 px-3 text-right font-bold text-slate-900 tabular-nums whitespace-nowrap">
                             Rp {new Intl.NumberFormat("id-ID").format(itemSubtotal)}
                           </td>
 
@@ -754,7 +754,7 @@ export function AssetRegisterForm() {
                               <button
                                 type="button"
                                 onClick={() => remove(index)}
-                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                                 title="Hapus baris ini"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -768,90 +768,6 @@ export function AssetRegisterForm() {
                     })}
                   </tbody>
                 </table>
-              </div>
-
-              {/* MOBILE CARDS FALLBACK (< sm) */}
-              <div className="sm:hidden space-y-3">
-                {fields.map((field, index) => {
-                  const itemSubtotal =
-                    (Number(watchedItems[index]?.hargaSatuan) || 0) * (Number(watchedItems[index]?.jumlah) || 0);
-
-                  return (
-                    <div key={field.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md">
-                          Item #{index + 1}
-                        </span>
-                        {fields.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => remove(index)}
-                            className="p-1 text-rose-600 hover:bg-rose-50 rounded-md"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-semibold text-slate-500 uppercase block mb-1">
-                          Nama Barang *
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Nama & spesifikasi..."
-                          {...register(`items.${index}.namaBarang` as const)}
-                          className="w-full text-xs font-semibold bg-white border border-slate-200 rounded-lg py-1.5 px-2.5"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] font-semibold text-slate-500 uppercase block mb-1">
-                            Jumlah (Qty) *
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            {...register(`items.${index}.jumlah` as const, { valueAsNumber: true })}
-                            className="w-full text-xs font-bold text-center bg-white border border-slate-200 rounded-lg py-1.5 px-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-semibold text-slate-500 uppercase block mb-1">
-                            Satuan *
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="Unit"
-                            {...register(`items.${index}.satuan` as const)}
-                            className="w-full text-xs bg-white border border-slate-200 rounded-lg py-1.5 px-2"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-semibold text-slate-500 uppercase block mb-1">
-                          Harga Satuan (Rp) *
-                        </label>
-                        <Controller
-                          name={`items.${index}.hargaSatuan` as const}
-                          control={control}
-                          render={({ field: f }) => (
-                            <CurrencyInput value={f.value} onChange={f.onChange} placeholder="0" />
-                          )}
-                        />
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-xs">
-                        <span className="text-slate-500 font-medium">Subtotal Item:</span>
-                        <span className="font-bold text-slate-900 tabular-nums">
-                          Rp {new Intl.NumberFormat("id-ID").format(itemSubtotal)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
 
               {/* Quick Add Row Button */}
